@@ -19,24 +19,18 @@ const Login = () => {
             // Send login request to backend
             const response = await axios.post('http://localhost:5000/api/login', loginData);
             
-<<<<<<< HEAD
-            // --- FIX: Ensure user data includes userId ---
-=======
-            // --- FIX: Ensure user data is stringified properly ---
-            // The error SyntaxError: Unexpected token 'e' in other files 
-            // happens if localStorage has just a string, not a JSON object.
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
+            // Determine role based on API response or hardcoded admin list
             const computedRole = response.data.role || (adminEmails.includes(String(response.data.email).toLowerCase()) ? 'admin' : 'user');
+            
             const userObject = {
                 username: response.data.username,
                 email: response.data.email,
-<<<<<<< HEAD
-                userId: response.data.userId, // <-- CRUCIAL FIX HERE
-=======
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
+                // backend may return either `_id` or `userId`; fall back safely
+                userId: response.data._id || response.data.userId || null,
                 role: computedRole
             };
             
+            // Store user data in localStorage
             localStorage.setItem('user', JSON.stringify(userObject));
             localStorage.setItem('email', response.data.email);
             
@@ -65,7 +59,7 @@ const Login = () => {
     };
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', backgroundColor: '#f4f4f9' }}>
             <div style={{ 
                 width: '100%', 
                 maxWidth: '380px', 
@@ -107,6 +101,7 @@ const Login = () => {
                         placeholder="Enter your email" 
                         required 
                         style={inputStyle}
+                        value={loginData.email}
                         onChange={(e) => setLoginData({...loginData, email: e.target.value})} 
                     />
 
@@ -116,6 +111,7 @@ const Login = () => {
                         placeholder="Enter your password" 
                         required 
                         style={inputStyle}
+                        value={loginData.password}
                         onChange={(e) => setLoginData({...loginData, password: e.target.value})} 
                     />
 
@@ -138,7 +134,7 @@ const Login = () => {
                 <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: '#666' }}>
                     Don't have an account?{' '}
                     <span 
-                        onClick={() => navigate('/')} 
+                        onClick={() => navigate('/register')} 
                         style={{ color: '#003366', fontWeight: 'bold', cursor: 'pointer' }}
                     >
                         Create an account

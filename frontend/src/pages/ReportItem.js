@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Package } from 'lucide-react';
@@ -14,11 +10,7 @@ const ReportItem = () => {
         itemName: '',
         description: '',
         location: '',
-<<<<<<< HEAD
-        contactEmail: localStorage.getItem('email') || '' ,
-=======
         contactEmail: localStorage.getItem('email') || '',
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
         contactNumber: '',
         telegramUsername: ''
     });
@@ -39,7 +31,6 @@ const ReportItem = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-<<<<<<< HEAD
 
         // Get user from localStorage (backend requires reportedBy.userId)
         const userString = localStorage.getItem('user');
@@ -61,8 +52,6 @@ const ReportItem = () => {
             return;
         }
 
-=======
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
         try {
             const data = new FormData();
             data.append('type', formData.type);
@@ -76,15 +65,12 @@ const ReportItem = () => {
                 data.append('telegramUsername', formData.telegramUsername);
             }
 
-<<<<<<< HEAD
             // Backend requires reportedBy with username and userId
             data.append('reportedBy', JSON.stringify({
                 username: user.username,
                 userId: user.userId
             }));
 
-=======
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
             if (itemImage) {
                 data.append('itemImage', itemImage);
             }
@@ -99,21 +85,12 @@ const ReportItem = () => {
             window.location.href = '/home';
         } catch (err) {
             console.error(err);
-<<<<<<< HEAD
             const message = err.response?.data?.message || err.response?.data?.error || "Error submitting report.";
             toast.error(message);
         }
     };
 
-
-const openCamera = async () => {
-=======
-            toast.error("Error submitting report.");
-        }
-    };
-
     const openCamera = async () => {
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
         try {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 setCameraError('Camera not supported in this browser. Please use Upload an image.');
@@ -176,7 +153,8 @@ const openCamera = async () => {
         };
     }, [cameraStream]);
 
-    const inputStyle = { width: '100%', padding: '15px', marginBottom: '15px', borderRadius: '10px', border: '1px solid #ddd', fontsize: '16px' };
+    // Fixed typo: fontsize -> fontSize
+    const inputStyle = { width: '100%', padding: '15px', marginBottom: '15px', borderRadius: '10px', border: '1px solid #ddd', fontSize: '16px' };
 
     return (
         <div style={{ padding: '40px', maxWidth: '600px', margin: 'auto' }}>
@@ -215,12 +193,7 @@ const openCamera = async () => {
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     />
 
-<<<<<<< HEAD
-
-<input
-=======
                     <input
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
                         type="text"
                         placeholder="Location (e.g. Library, Block 41)"
                         required
@@ -279,12 +252,7 @@ const openCamera = async () => {
                             </button>
                         </div>
 
-<<<<<<< HEAD
-
-{/* Hidden input for standard upload */}
-=======
                         {/* Hidden input for standard upload */}
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
                         <input
                             id="uploadImage"
                             className="hidden-file-input"
@@ -354,12 +322,7 @@ const openCamera = async () => {
                         )}
                     </div>
 
-<<<<<<< HEAD
-
-<button
-=======
                     <button
->>>>>>> 292b2caf51289924137fc802ff434d360335eace
                         type="submit"
                         style={{
                             width: '100%',
