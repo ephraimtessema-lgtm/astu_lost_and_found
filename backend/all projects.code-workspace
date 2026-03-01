@@ -1,0 +1,16 @@
+{
+  "folders": [
+	{
+		"path": "../../../../VS codes/all projects"
+	},
+	{
+		"path": "../../ASTU_lost_and_found"
+	},
+	{
+		"path": ".."
+	}
+],
+  "settings": {
+    "liveServer.settings.multiRootWorkspaceName": "all projects"
+  }
+}
