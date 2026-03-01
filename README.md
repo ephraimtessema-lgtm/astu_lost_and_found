@@ -1,5 +1,6 @@
-🎓 ASTU Lost & Found
-ASTU Lost and Found is a web application designed to help students and staff at Adama Science and Technology University (ASTU) locate lost items and return found items efficiently.
+  ASTU Lost & Found
+
+ASTU Lost and Found is a web application designed to help students at Adama Science and Technology University (ASTU) locate lost items and return found items efficiently.
 
 🚀 Features
 ##User Authentication: Secure login and registration for ASTU community members.
@@ -12,18 +13,18 @@ ASTU Lost and Found is a web application designed to help students and staff at 
 
 ##Real-time Notifications: Get notified when an item is found or a claim is approved.
 
-🛠️ Technology Stack
+ Technology Stack
 
-     Frontend
-       React.js
-       Axios for API requests
-       React Toastify for notifications
-       React Router for navigation
+ Frontend
+     React.js
+     Axios for API requests
+     React Toastify for notifications
+     React Router for navigation
 
-    Backend
-       Node.js
-       Express.js
-       MongoDB (or database of choice)
+  Backend
+     Node.js
+     Express.js
+     MongoDB (or database of choice)
 
 📋 Installation & Setup Prerequisites
 
@@ -58,4 +59,4 @@ MongoDB installed and running
    Frontend: cd frontend && npm start
 
 👥 Authors
-Ephraim Tessema - Initial Work
+Ephraim Tessema 

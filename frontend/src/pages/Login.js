@@ -19,12 +19,21 @@ const Login = () => {
             // Send login request to backend
             const response = await axios.post('http://localhost:5000/api/login', loginData);
             
+<<<<<<< HEAD
             // --- FIX: Ensure user data includes userId ---
+=======
+            // --- FIX: Ensure user data is stringified properly ---
+            // The error SyntaxError: Unexpected token 'e' in other files 
+            // happens if localStorage has just a string, not a JSON object.
+>>>>>>> 292b2caf51289924137fc802ff434d360335eace
             const computedRole = response.data.role || (adminEmails.includes(String(response.data.email).toLowerCase()) ? 'admin' : 'user');
             const userObject = {
                 username: response.data.username,
                 email: response.data.email,
+<<<<<<< HEAD
                 userId: response.data.userId, // <-- CRUCIAL FIX HERE
+=======
+>>>>>>> 292b2caf51289924137fc802ff434d360335eace
                 role: computedRole
             };
             
