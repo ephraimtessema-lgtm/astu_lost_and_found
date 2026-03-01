@@ -1,44 +1,348 @@
-import React, { useState } from 'react';
-import { Camera, Send } from 'lucide-react';
+
+import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
+import { Package } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const ReportItem = () => {
-    const [item, setItem] = useState({ title: '', category: 'ID Card', type: 'Lost', description: '' });
+    const [formData, setFormData] = useState({
+        type: 'Lost',
+        category: '',
+        itemName: '',
+        description: '',
+        location: '',
+        contactEmail: localStorage.getItem('email') || '' ,
+        contactNumber: '',
+        telegramUsername: ''
+    });
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log("Item Reported:", item);
-        alert("Item submitted for Admin approval!");
+    const [itemImage, setItemImage] = useState(null);
+    const [showCamera, setShowCamera] = useState(false);
+    const [cameraError, setCameraError] = useState('');
+    const [cameraStream, setCameraStream] = useState(null);
+
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+
+    const handleImageChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setItemImage(e.target.files[0]);
+        }
     };
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        // Get user from localStorage (backend requires reportedBy.userId)
+        const userString = localStorage.getItem('user');
+        if (!userString) {
+            toast.error("You must be logged in to report an item.");
+            return;
+        }
+        let user;
+        try {
+            user = JSON.parse(userString);
+        } catch (parseErr) {
+            console.error("Error parsing user from localStorage", parseErr);
+            toast.error("Invalid session. Please log in again.");
+            localStorage.removeItem('user');
+            return;
+        }
+        if (!user || !user.userId) {
+            toast.error("Invalid session. Please log in again.");
+            return;
+        }
+
+        try {
+            const data = new FormData();
+            data.append('type', formData.type);
+            data.append('category', formData.category);
+            data.append('itemName', formData.itemName);
+            data.append('description', formData.description);
+            data.append('location', formData.location);
+            data.append('contactEmail', formData.contactEmail);
+            data.append('contactNumber', formData.contactNumber);
+            if (formData.telegramUsername) {
+                data.append('telegramUsername', formData.telegramUsername);
+            }
+
+            // Backend requires reportedBy with username and userId
+            data.append('reportedBy', JSON.stringify({
+                username: user.username,
+                userId: user.userId
+            }));
+
+            if (itemImage) {
+                data.append('itemImage', itemImage);
+            }
+
+            await axios.post('http://localhost:5000/api/items', data, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            toast.success("Item reported successfully!");
+            window.location.href = '/home';
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.message || err.response?.data?.error || "Error submitting report.";
+            toast.error(message);
+        }
+    };
+
+
+const openCamera = async () => {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setCameraError('Camera not supported in this browser. Please use Upload an image.');
+                return;
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                await videoRef.current.play();
+            }
+
+            setCameraStream(stream);
+            setShowCamera(true);
+            setCameraError('');
+        } catch (err) {
+            console.error('Error accessing camera:', err);
+            setCameraError('Unable to access camera. Please check permissions or use Upload an image.');
+        }
+    };
+
+    const stopCamera = () => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach((track) => track.stop());
+        }
+        setCameraStream(null);
+        setShowCamera(false);
+    };
+
+    const captureFromCamera = () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || !canvas) return;
+
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+            (blob) => {
+                if (!blob) return;
+                const file = new File([blob], 'captured-image.jpg', { type: 'image/jpeg' });
+                setItemImage(file);
+                stopCamera();
+            },
+            'image/jpeg',
+            0.9
+        );
+    };
+
+    useEffect(() => {
+        return () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach((track) => track.stop());
+            }
+        };
+    }, [cameraStream]);
+
+    const inputStyle = { width: '100%', padding: '15px', marginBottom: '15px', borderRadius: '10px', border: '1px solid #ddd', fontsize: '16px' };
+
     return (
-        <div style={{ maxWidth: '500px', margin: '50px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px', background: '#f9f9f9' }}>
-            <h2 style={{ color: '#003366', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Camera /> Report Lost/Found Item
-            </h2>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <input type="text" placeholder="Item Name (e.g., TI-84 Calculator)" required 
-                    onChange={(e) => setItem({...item, title: e.target.value})} style={{ padding: '10px' }} />
-                
-                <select onChange={(e) => setItem({...item, category: e.target.value})} style={{ padding: '10px' }}>
-                    <option>ID Card</option>
-                    <option>Calculator</option>
-                    <option>USB Drive</option>
-                    <option>Lab Coat</option>
-                    <option>Book</option>
-                </select>
+        <div style={{ padding: '40px', maxWidth: '600px', margin: 'auto' }}>
+            <div style={{ background: 'white', padding: '30px', borderRadius: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+                <h2 style={{ color: '#003366', textAlign: 'center' }}><Package size={24} /> Report Item</h2>
+                <form className="report-form" onSubmit={handleSubmit}>
+                    <select
+                        style={inputStyle}
+                        value={formData.type}
+                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    >
+                        <option value="Lost">I Lost Something</option>
+                        <option value="Found">I Found Something</option>
+                    </select>
 
-                <div style={{ display: 'flex', gap: '20px' }}>
-                    <label><input type="radio" name="type" value="Lost" checked={item.type === 'Lost'} onChange={() => setItem({...item, type: 'Lost'})} /> Lost</label>
-                    <label><input type="radio" name="type" value="Found" onChange={() => setItem({...item, type: 'Found'})} /> Found</label>
-                </div>
+                    <input
+                        type="text"
+                        placeholder="Item Name (e.g. iPhone 13)"
+                        required
+                        style={inputStyle}
+                        onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                    />
 
-                <textarea placeholder="Description (Where did you lose/find it?)" rows="4" 
-                    onChange={(e) => setItem({...item, description: e.target.value})} style={{ padding: '10px' }}></textarea>
-                
-                <button type="submit" style={{ padding: '12px', background: '#003366', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-                    <Send size={18} /> Submit Report
-                </button>
-            </form>
+                    <input
+                        type="text"
+                        placeholder="Category (e.g. Electronics, Keys)"
+                        required
+                        style={inputStyle}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    />
+
+                    <textarea
+                        placeholder="Description (Color, marks, etc.)"
+                        required
+                        style={{ ...inputStyle, height: '100px' }}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    />
+
+
+<input
+                        type="text"
+                        placeholder="Location (e.g. Library, Block 41)"
+                        required
+                        style={inputStyle}
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    />
+
+                    <input
+                        type="tel"
+                        placeholder="Contact Phone (optional)"
+                        style={inputStyle}
+                        onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Telegram username (optional)"
+                        style={inputStyle}
+                        onChange={(e) => setFormData({ ...formData, telegramUsername: e.target.value })}
+                    />
+
+                    <div className="form-group">
+                        <label style={{ color: '#003366', fontWeight: 700 }}>Item Image (optional)</label>
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                            <button
+                                type="button"
+                                style={{
+                                    flex: '1 1 140px',
+                                    padding: '10px 12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #003366',
+                                    background: '#003366',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontWeight: '600'
+                                }}
+                                onClick={openCamera}
+                            >
+                                Take a picture
+                            </button>
+                            <button
+                                type="button"
+                                style={{
+                                    flex: '1 1 160px',
+                                    padding: '10px 12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #003366',
+                                    background: 'white',
+                                    color: '#003366',
+                                    cursor: 'pointer',
+                                    fontWeight: '600'
+                                }}
+                                onClick={() => document.getElementById('uploadImage')?.click()}
+                            >
+                                Upload an image
+                            </button>
+                        </div>
+
+
+{/* Hidden input for standard upload */}
+                        <input
+                            id="uploadImage"
+                            className="hidden-file-input"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                        />
+                        {showCamera && (
+                            <div style={{ marginTop: '10px' }}>
+                                <video
+                                    ref={videoRef}
+                                    style={{
+                                        width: '100%',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#000'
+                                    }}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                />
+                                <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                                    <button
+                                        type="button"
+                                        style={{
+                                            flex: '1 1 140px',
+                                            padding: '8px 12px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: '#28a745',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontWeight: '600'
+                                        }}
+                                        onClick={captureFromCamera}
+                                    >
+                                        Capture
+                                    </button>
+                                    <button
+                                        type="button"
+                                        style={{
+                                            flex: '1 1 120px',
+                                            padding: '8px 12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ccc',
+                                            background: 'white',
+                                            color: '#333',
+                                            cursor: 'pointer',
+                                            fontWeight: '500'
+                                        }}
+                                        onClick={stopCamera}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                                <canvas ref={canvasRef} style={{ display: 'none' }} />
+                            </div>
+                        )}
+                        {cameraError && (
+                            <small style={{ display: 'block', marginTop: '5px', color: 'red' }}>
+                                {cameraError}
+                            </small>
+                        )}
+                        {itemImage && (
+                            <small style={{ display: 'block', marginTop: '5px', color: '#555' }}>
+                                Selected: {itemImage.name}
+                            </small>
+                        )}
+                    </div>
+
+
+<button
+                        type="submit"
+                        style={{
+                            width: '100%',
+                            padding: '12px',
+                            background: '#003366',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        Submit Report
+                    </button>
+                </form>
+            </div>
         </div>
     );
 };
