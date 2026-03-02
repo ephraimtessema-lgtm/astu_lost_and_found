@@ -10,12 +10,41 @@ import Register from './pages/Register';
 import ReportItem from './pages/ReportItem';
 import ItemDetails from './pages/ItemDetails';
 import Settings from './pages/Settings'; 
-import AdminClaims from './AdminClaims'; // Import the new component
-import './App.css'; // Ensure your CSS is imported
+import AdminClaims from './AdminClaims'; 
+import './App.css';
+
+// --- Helper Functions ---
+const getStoredUser = () => {
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    localStorage.removeItem('user'); // Clear corrupted data
+    return null;
+  }
+};
+
+const isAdminUser = (user) => {
+  if (!user) return false;
+  return user.role === 'admin' || user.email?.toLowerCase() === 'astulostandfound@gmail.com';
+};
+
+// --- Custom Route Wrappers ---
+const AdminRoute = ({ children }) => {
+  const user = getStoredUser();
+  return isAdminUser(user) ? children : <Navigate to="/home" replace />;
+};
+
+const PrivateRoute = ({ children }) => {
+  const user = getStoredUser();
+  return user ? children : <Navigate to="/login" replace />;
+};
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideNavbar = location.pathname === '/' || location.pathname === '/login';
+  // Simplified logic: Hide navbar on Landing (Register) and Login pages
+  const hideNavbar = ['/', '/login'].includes(location.pathname);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -24,12 +53,10 @@ const Layout = ({ children }) => {
         className="main-content"
         style={{ 
           flexGrow: 1, 
-          // Uses the CSS variables from App.css for perfect alignment
-          marginLeft: hideNavbar ? '0' : 'var(--sidebar-desktop-width)', 
+          marginLeft: hideNavbar ? '0' : 'var(--sidebar-desktop-width, 240px)', 
           padding: '20px',
           transition: 'all 0.3s ease',
-          // Adds space at the bottom on mobile so content isn't covered by the bottom nav
-          marginBottom: hideNavbar ? '0' : 'var(--nav-mobile-height)' 
+          marginBottom: hideNavbar ? '0' : 'var(--nav-mobile-height, 60px)' 
         }}
       >
         {children}
@@ -38,56 +65,29 @@ const Layout = ({ children }) => {
   );
 };
 
-const getStoredUser = () => {
-  const raw = localStorage.getItem('user');
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
-  } catch (err) {
-    return null;
-  }
-};
-
-const isAdminUser = (user) => {
-  if (!user) return false;
-  const email = String(user.email || '').toLowerCase();
-  return user.role === 'admin' || email === 'ephraimtessema@gmail.com';
-};
-
-const AdminRoute = ({ children }) => {
-  const user = getStoredUser();
-  if (!isAdminUser(user)) {
-    return <Navigate to="/home" replace />;
-  }
-  return children;
-};
-
 function App() {
   return (
     <Router>
       <div className="App">
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
+        <ToastContainer position="top-right" autoClose={3000} theme="colored" />
         <Layout>
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Register />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/report" element={<ReportItem />} />
-            <Route path="/settings" element={<Settings />} />
+
+            {/* Protected User Routes */}
+            <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+            <Route path="/report" element={<PrivateRoute><ReportItem /></PrivateRoute>} />
+            <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+            <Route path="/item/:id" element={<PrivateRoute><ItemDetails /></PrivateRoute>} />
+
+            {/* Protected Admin Routes */}
             <Route path="/admin" element={<AdminRoute><AdminClaims /></AdminRoute>} />
             <Route path="/admin/claims" element={<AdminRoute><AdminClaims /></AdminRoute>} />
-            <Route path="/item/:id" element={<ItemDetails />} />
+
+            {/* Catch-all: Redirect unknown routes to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
       </div>
