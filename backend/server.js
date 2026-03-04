@@ -11,12 +11,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// --- 1. UPLOADS FOLDER ---
+//1. UPLOADS FOLDER
 const uploadDir = './uploads';
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 app.use('/uploads', express.static('uploads'));
 
-// --- 2. MULTER STORAGE ---
+// 2. MULTER STORAGE
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
     filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
@@ -31,17 +31,17 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-// --- 3. MONGODB CONNECTION ---
+// 3. MONGODB CONNECTION 
 mongoose.connect(process.env.DB_URI || 'mongodb://127.0.0.1:27017/astu_lost_found')
 .then(() => console.log('✅ MongoDB connected'))
 .catch(err => console.error('❌ MongoDB error:', err));
 
-// --- 4. MODELS ---
+// 4. MODELS
 const User = require('./models/User');
 const Item = require('./models/Item');
 const Claim = require('./models/Claim');
 
-// --- 5. EMAIL SETUP ---
+// 5. EMAIL SETUP
 const emailUser = (process.env.EMAIL_USER || '').trim();
 const emailPass = (process.env.EMAIL_PASS || '').trim();
 
@@ -72,7 +72,7 @@ async function sendEmail({ to, subject, text, html }) {
     }
 }
 
-// --- Email content (ASTU Lost & Found - astulostandfound@gmail.com) ---
+// Email content (ASTU Lost & Found - astulostandfound@gmail.com)
 const EMAIL = {
     welcome({ username }) {
         const subject = 'Welcome to ASTU Lost & Found';
@@ -89,7 +89,7 @@ const EMAIL = {
                     <li>Claim items you have lost</li>
                     <li>Get notified when your claim is reviewed</li>
                 </ul>
-                <p>If you have any questions, reply to this email or contact us through the app.</p>
+                <p>If you have any questions, reply to this email.</p>
                 <p style="color: #666; margin-top: 24px;">— ASTU Lost & Found Team</p>
             </div>`;
         return { subject, text, html };

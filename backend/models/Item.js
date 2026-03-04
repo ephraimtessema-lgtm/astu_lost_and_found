@@ -6,70 +6,89 @@ const itemSchema = new mongoose.Schema({
         enum: ['Lost', 'Found'], 
         required: true 
     },
+
     category: { 
         type: String, 
         required: true 
     },
+
     itemName: { 
         type: String, 
         required: true 
     },
+
     description: { 
         type: String, 
         required: true 
     },
+
+    // --- NEW: SECRET VERIFICATION FIELD ---
+    // This stores the private info from the reporter to help Admins verify claims
+    adminNote: { 
+        type: String, 
+        default: '' 
+    },
+
     location: { 
         type: String, 
         required: true 
     },
-    contactEmail: { 
-        type: String 
-    },
-    contactNumber: { 
-        type: String 
-    },
-    telegramUsername: { 
-        type: String 
-    },
-    imagePath: { 
-        type: String 
-    },
+
+    contactEmail: { type: String },
+    contactNumber: { type: String },
+    telegramUsername: { type: String },
+
+    imagePath: { type: String },
+
     reportedBy: {
         username: { 
             type: String, 
-            required: [true, 'Username is required'],
+            required: true,
             default: 'Anonymous'
         },
         userId: { 
             type: mongoose.Schema.Types.ObjectId, 
             ref: 'User', 
-            required: [true, 'User ID is required'] // Mongoose will throw error if this is null
+            required: true
         }
     },
+
     dateReported: { 
         type: Date, 
         default: Date.now 
     },
+
+    // All claims related to this item
     claims: [{ 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'Claim' 
     }],
+
+    // Only ONE claim can be approved
     approvedClaim: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'Claim', 
         default: null 
+    },
+
+    // Status tracking
+    status: {
+        type: String,
+        enum: ['Available', 'Claimed', 'Returned'],
+        default: 'Available'
     }
+
 }, {
-    // Enable virtuals to be included in JSON responses
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
 
-// Index the reportedBy.userId for fast lookups
+// Fast lookup for user's reports
 itemSchema.index({ "reportedBy.userId": 1 });
 
-// Optional virtual for quick lookup if item has approved claim
-itemSchema.virtual('hasApprovedClaim').get(function() {
+// Virtual helper to check if item is already claimed
+itemSchema.virtual('hasApprovedClaim').get(function () {
     return !!this.approvedClaim;
 });
 
