@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const path = require('path');
@@ -167,7 +168,8 @@ app.post('/api/register', async (req, res) => {
         if (!username || !cleanEmail || !password) return res.status(400).json({ message: "All fields required" });
         const existingUser = await User.findOne({ $or: [{ username }, { email: cleanEmail }] });
         if (existingUser) return res.status(400).json({ message: "User exists" });
-        const newUser = new User({ username, email: cleanEmail, password });
+        const hashedPassword = await bcrypt.hash(String(password), 10);
+        const newUser = new User({ username, email: cleanEmail, password: hashedPassword });
         await newUser.save();
         const { subject, text, html } = EMAIL.welcome({ username });
         sendEmail({ to: cleanEmail, subject, text, html });
@@ -182,7 +184,25 @@ app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email: normalizeEmail(email) });
-        if (!user || user.password !== password) return res.status(400).json({ message: "Invalid credentials" });
+        if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+        const stored = String(user.password || '');
+        const incoming = String(password || '');
+
+        // Support legacy plaintext passwords by upgrading them on successful login
+        const looksHashed = stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$');
+        let ok = false;
+        if (looksHashed) {
+            ok = await bcrypt.compare(incoming, stored);
+        } else {
+            ok = stored === incoming;
+            if (ok) {
+                user.password = await bcrypt.hash(incoming, 10);
+                await user.save();
+            }
+        }
+
+        if (!ok) return res.status(400).json({ message: "Invalid credentials" });
         
         // --- NOTE: Make sure this sends back the userId ---
         res.status(200).json({ 
@@ -199,7 +219,7 @@ app.post('/api/login', async (req, res) => {
 // REPORT ITEM
 app.post('/api/items', upload.single('itemImage'), async (req, res) => {
     try {
-        const { type, category, itemName, description, location, contactEmail, contactNumber, telegramUsername, reportedBy } = req.body;
+        const { type, category, itemName, description, location, contactEmail, contactNumber, telegramUsername, reportedBy, adminNote } = req.body;
         
         // Basic validation
         if (!itemName || !description || !type || !location) {
@@ -233,6 +253,7 @@ app.post('/api/items', upload.single('itemImage'), async (req, res) => {
             contactEmail,
             contactNumber,
             telegramUsername,
+            adminNote: (type === 'Found' && adminNote) ? String(adminNote).trim() : '',
             imagePath: req.file ? `/uploads/${req.file.filename}` : '',
             reportedBy: {
                 username: userData.username || 'Anonymous',
@@ -252,13 +273,24 @@ app.post('/api/items', upload.single('itemImage'), async (req, res) => {
     }
 });
 
-// GET ITEMS
+// GET ITEMS (exclude adminNote - only admin sees it)
 app.get('/api/items', async (req, res) => {
     try {
-        const items = await Item.find().sort({ dateReported: -1 });
+        const items = await Item.find().select('-adminNote').sort({ dateReported: -1 });
         res.status(200).json(items);
     } catch (err) {
         res.status(500).json({ message: "Error fetching items" });
+    }
+});
+
+// GET SINGLE ITEM (exclude adminNote for public)
+app.get('/api/items/:id', async (req, res) => {
+    try {
+        const item = await Item.findById(req.params.id).select('-adminNote');
+        if (!item) return res.status(404).json({ message: "Item not found" });
+        res.status(200).json(item);
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching item" });
     }
 });
 
@@ -267,7 +299,7 @@ app.get('/api/items', async (req, res) => {
 // SUBMIT CLAIM
 app.post('/api/items/:id/claim', async (req, res) => {
     try {
-        const { username, email, userId } = req.body;
+        const { username, email, userId, claimDetails } = req.body;
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ message: "Item not found" });
 
@@ -276,7 +308,8 @@ app.post('/api/items/:id/claim', async (req, res) => {
             itemName: item.itemName, 
             claimerUsername: username, 
             claimerEmail: email,
-            claimerId: userId
+            claimerId: userId,
+            claimDetails: (claimDetails && String(claimDetails).trim()) ? String(claimDetails).trim() : ''
         });
         await newClaim.save();
         
@@ -296,10 +329,12 @@ app.post('/api/items/:id/claim', async (req, res) => {
     }
 });
 
-// GET CLAIMS (Admin)
+// GET CLAIMS (Admin) - include item with adminNote for verification
 app.get('/api/admin/claims', requireAdmin, async (req, res) => {
     try {
-        const claims = await Claim.find().sort({ dateRequested: -1 });
+        const claims = await Claim.find()
+            .sort({ dateRequested: -1 })
+            .populate('itemId');
         res.status(200).json(claims);
     } catch (err) {
         console.error("Claims Fetch Error:", err);

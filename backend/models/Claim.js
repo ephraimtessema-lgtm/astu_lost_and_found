@@ -18,6 +18,11 @@ const claimSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
+    // Verification details from claimer - only admin sees, used to match with item's adminNote
+    claimDetails: { 
+        type: String, 
+        default: '' 
+    },
     status: { 
         type: String, 
         enum: ['Pending', 'Approved', 'Rejected'], 

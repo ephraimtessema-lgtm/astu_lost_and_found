@@ -10,6 +10,8 @@ const ItemDetail = () => {
     const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showClaimModal, setShowClaimModal] = useState(false);
+    const [claimDetails, setClaimDetails] = useState('');
 
     useEffect(() => {
         const fetchItemDetail = async () => {
@@ -39,45 +41,47 @@ const ItemDetail = () => {
         fetchItemDetail();
     }, [id]);
 
-    const handleClaim = async () => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-        toast.error("Please log in to claim items.");
-        navigate('/login');
-        return;
-    }
-    
-    let username, email;
+    const handleClaimClick = () => {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            toast.error("Please log in to claim items.");
+            navigate('/login');
+            return;
+        }
+        setShowClaimModal(true);
+    };
 
-    // --- FIX: Correctly parse user data with fallback ---
-    try {
-        // Attempt to parse the string as a JSON object
-        const user = JSON.parse(userStr);
-        username = user.username;
-        email = user.email;
-    } catch (e) {
-        // Fallback: If it was stored incorrectly as a raw string previously,
-        // use the string directly and retrieve email from a separate key if necessary.
-        console.warn("User data is not JSON formatted, parsing as plain string");
-        username = userStr;
-        email = localStorage.getItem('email') || '';
-    }
-    // ----------------------------------------------------
+    const handleClaimSubmit = async () => {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) return;
+        let username, email, userId;
+        try {
+            const user = JSON.parse(userStr);
+            username = user.username;
+            email = user.email;
+            userId = user.userId;
+        } catch (e) {
+            username = userStr;
+            email = localStorage.getItem('email') || '';
+            userId = null;
+        }
 
-    try {
-        await axios.post(`http://localhost:5000/api/items/${id}/claim`, { 
-            username: username, 
-            email: email 
-        });
-        
-        toast.success("Claim request sent to Admin! Please wait for approval.");
-        navigate('/home');
-    } catch (err) {
-        console.error("Claim request error:", err?.response || err);
-        const backendMessage = err?.response?.data?.message || "Failed to submit claim request.";
-        toast.error(backendMessage);
-    }
-};
+        try {
+            await axios.post(`http://localhost:5000/api/items/${id}/claim`, { 
+                username, 
+                email, 
+                userId,
+                claimDetails: claimDetails.trim()
+            });
+            setShowClaimModal(false);
+            setClaimDetails('');
+            toast.success("Claim request sent to Admin! Please wait for approval.");
+            navigate('/home');
+        } catch (err) {
+            const backendMessage = err?.response?.data?.message || "Failed to submit claim request.";
+            toast.error(backendMessage);
+        }
+    };
     const hasApprovedClaim = item?.approvedClaim && item.approvedClaim.status === 'Approved';
 
     if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading details...</div>;
@@ -177,7 +181,7 @@ const ItemDetail = () => {
                             
                             {!hasApprovedClaim && (
                                 <button 
-                                    onClick={handleClaim} 
+                                    onClick={handleClaimClick} 
                                     className="claim-button"
                                     style={{
                                         width: '100%',
@@ -216,6 +220,75 @@ const ItemDetail = () => {
                     </div>
                 </div>
             </div>
+
+            {showClaimModal && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    padding: '20px'
+                }} onClick={() => setShowClaimModal(false)}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        maxWidth: '420px',
+                        width: '100%',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <h3 style={{ margin: '0 0 12px', color: '#003366' }}>Verify your claim</h3>
+                        <p style={{ margin: '0 0 16px', color: '#555', fontSize: '14px' }}>
+                            Provide details only the real owner would know (e.g. marks, scratches, where you lost it). Admin uses this to verify.
+                        </p>
+                        <textarea
+                            placeholder="e.g. It has a small scratch on the back, I lost it near the library..."
+                            value={claimDetails}
+                            onChange={e => setClaimDetails(e.target.value)}
+                            rows={4}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                border: '1px solid #ddd',
+                                marginBottom: '16px',
+                                resize: 'vertical'
+                            }}
+                        />
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setShowClaimModal(false)}
+                                style={{
+                                    padding: '10px 18px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ccc',
+                                    background: 'white',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleClaimSubmit}
+                                style={{
+                                    padding: '10px 18px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: '#003366',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontWeight: 600
+                                }}
+                            >
+                                Submit claim
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

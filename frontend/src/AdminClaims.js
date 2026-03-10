@@ -95,41 +95,75 @@ const AdminClaims = () => {
                         padding: '15px',
                         borderRadius: '8px',
                         marginBottom: '10px',
+                        background: '#fff',
                         display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: '#fff'
+                        flexDirection: 'column',
+                        gap: '12px'
                     }}>
-                        <div>
-                            <h4>Item: {claim.itemName}</h4>
-                            <p>Claimed by: {claim.claimerUsername} ({claim.claimerEmail})</p>
-                            <p>Requested on: {new Date(claim.dateRequested).toLocaleDateString()}</p>
-                            <p>
-                                Status: 
-                                <span style={{ 
-                                    fontWeight: 'bold', 
-                                    color: claim.status === 'Approved' ? 'green' : claim.status === 'Rejected' ? 'red' : 'orange',
-                                    marginLeft: '5px'
-                                }}>
-                                    {claim.status}
-                                </span>
-                            </p>
-                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                            <div>
+                                <h4>Item: {claim.itemName}</h4>
+                                <p>Claimed by: {claim.claimerUsername} ({claim.claimerEmail})</p>
+                                <p>Requested on: {new Date(claim.dateRequested).toLocaleDateString()}</p>
+                                <p>
+                                    Status: 
+                                    <span style={{ 
+                                        fontWeight: 'bold', 
+                                        color: claim.status === 'Approved' ? 'green' : claim.status === 'Rejected' ? 'red' : 'orange',
+                                        marginLeft: '5px'
+                                    }}>
+                                        {claim.status}
+                                    </span>
+                                </p>
+                            </div>
                         
-                        {claim.status === 'Pending' && (
-                            <div className="actions">
-                                <button 
-                                    onClick={() => handleDecision(claim._id, 'Approved')}
-                                    style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '10px', borderRadius: '5px', cursor: 'pointer', marginRight: '10px' }}
-                                >
-                                    <CheckCircle size={20} /> Approve
-                                </button>
-                                <button 
-                                    onClick={() => handleDecision(claim._id, 'Rejected')}
-                                    style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '10px', borderRadius: '5px', cursor: 'pointer' }}
-                                >
-                                    <XCircle size={20} /> Reject
-                                </button>
+                            {claim.status === 'Pending' && (
+                                <div className="actions" style={{ display: 'flex', gap: '8px' }}>
+                                    <button 
+                                        onClick={() => handleDecision(claim._id, 'Approved')}
+                                        style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '10px', borderRadius: '5px', cursor: 'pointer' }}
+                                    >
+                                        <CheckCircle size={20} /> Approve
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDecision(claim._id, 'Rejected')}
+                                        style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '10px', borderRadius: '5px', cursor: 'pointer' }}
+                                    >
+                                        <XCircle size={20} /> Reject
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        {(claim.itemId?.adminNote || claim.claimDetails) && (
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                                gap: '12px', 
+                                marginTop: '8px',
+                                fontSize: '13px'
+                            }}>
+                                {claim.itemId?.adminNote && (
+                                    <div style={{ 
+                                        padding: '10px', 
+                                        background: '#f0f7ff', 
+                                        borderRadius: '6px', 
+                                        borderLeft: '3px solid #003366' 
+                                    }}>
+                                        <strong style={{ color: '#003366' }}>Finder's private note:</strong>
+                                        <p style={{ margin: '4px 0 0', color: '#333' }}>{claim.itemId.adminNote}</p>
+                                    </div>
+                                )}
+                                {claim.claimDetails && (
+                                    <div style={{ 
+                                        padding: '10px', 
+                                        background: '#f0fff4', 
+                                        borderRadius: '6px', 
+                                        borderLeft: '3px solid #28a745' 
+                                    }}>
+                                        <strong style={{ color: '#28a745' }}>Claimer's verification:</strong>
+                                        <p style={{ margin: '4px 0 0', color: '#333' }}>{claim.claimDetails}</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

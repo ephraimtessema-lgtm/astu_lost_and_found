@@ -9,6 +9,7 @@ const ReportItem = () => {
         category: '',
         itemName: '',
         description: '',
+        adminNote: '',
         location: '',
         contactEmail: localStorage.getItem('email') || '',
         contactNumber: '',
@@ -58,6 +59,9 @@ const ReportItem = () => {
             data.append('category', formData.category);
             data.append('itemName', formData.itemName);
             data.append('description', formData.description);
+            if (formData.type === 'Found' && formData.adminNote) {
+                data.append('adminNote', formData.adminNote);
+            }
             data.append('location', formData.location);
             data.append('contactEmail', formData.contactEmail);
             data.append('contactNumber', formData.contactNumber);
@@ -192,6 +196,20 @@ const ReportItem = () => {
                         style={{ ...inputStyle, height: '100px' }}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     />
+
+                    {formData.type === 'Found' && (
+                        <div style={{ marginBottom: '15px' }}>
+                            <label style={{ display: 'block', color: '#003366', fontWeight: 600, marginBottom: '6px' }}>
+                                Private verification details (only admin sees)
+                            </label>
+                            <textarea
+                                placeholder="e.g. Scratch on back, sticker on case, initials inside... Used by admin to verify claims."
+                                style={{ ...inputStyle, height: '80px', background: '#f8f9fa' }}
+                                onChange={(e) => setFormData({ ...formData, adminNote: e.target.value })}
+                            />
+                            <small style={{ color: '#666', fontSize: '12px' }}>Helps admin confirm the real owner when someone claims this item.</small>
+                        </div>
+                    )}
 
                     <input
                         type="text"
